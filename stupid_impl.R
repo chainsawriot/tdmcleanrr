@@ -9,8 +9,13 @@ nirvana <- c("hello hello hello how low", "hello hello hello how low",
 "a mulatto", "an albino", "a mosquito", "my libido", "yeah", "hey yay")
 
 chinese <- c("中華人民共和國","香港特別行政區","你老母","香港")
+chinese2 <- c("中華人民共和國","香港特別行政區","你老母","香港", "中華民國", "香港行政長官","你老母臭大你", "香港大學", "中文大學", "香港中文大學")
 
-TermDocumentMatrix(Corpus(VectorSource(chinese)), control = list(tokenize = function(x) ngramrr(x, char = TRUE, ngmax = 10), wordLengths = c(1, Inf))) -> testtdm
+# expected output should be
+# "中華人民共和國" x1 "香港" x2 "特別行政區" x1 "你老母" x1
+
+
+TermDocumentMatrix(Corpus(VectorSource(chinese2)), control = list(tokenize = function(x) ngramrr(x, char = TRUE, ngmax = 10), wordLengths = c(1, Inf))) -> testtdm
 
 frequency <- apply(testtdm, 1, sum)
 
@@ -26,16 +31,21 @@ singleton <- allterms[grep('^.$', allterms)]
 require(tau)
 sum(frequency[grep("^a.$", names(frequency))])
 
-isRedundant <- function(x, freq) {
+isRedundantChild <- function(x, freq) {
     x == sum(freq[grep(paste0("^",names(x),".$"), names(freq))])
 }
 
 
-uniqueterms <- function(tdm) {
-    frequency <- apply(tdm, 1, sum)
-    return(names(frequency[!sapply(1:length(frequency), function(x) isRedundant(frequency[x], freq = frequency))])
-)
+isRedundantParent <- function(x, freq) {
+    x == sum(freq[grep(paste0("^.",names(x),"$"), names(freq))])
 }
 
-uniqueterms(testtdm)
 
+
+uniqueterms <- function(frequency, redunantfx) {
+    return(frequency[!sapply(1:length(frequency), function(x) redunantfx(frequency[x], freq = frequency))])
+}
+
+frequency <- apply(testtdm, 1, sum)
+x <- uniqueterms(frequency, isRedundantChild)
+y <- uniqueterms(x, isRedundantParent)
